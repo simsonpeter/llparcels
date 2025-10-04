@@ -123,7 +123,7 @@
   </div>
 
   <script type="module">
-    // 🔑 Replace with your Supabase project URL and anon key
+    // 🔑 Your Supabase credentials
     const SUPABASE_URL = 'https://otdbijszyjjvhfhdcmym.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90ZGJpanN6eWpqdmhmaGRjbXltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0OTkxOTgsImV4cCI6MjA3NTA3NTE5OH0.ESDkZJ4RAqlOgO-R0tgCQHI3h7nyXV7TmsmrraBMf9I';
 
@@ -131,7 +131,7 @@
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Get URL parameters
+    // Get URL parameters (including shop_id)
     const urlParams = new URLSearchParams(window.location.search);
     const pickup_address = urlParams.get('pickup_address');
     const delivery_address = urlParams.get('delivery_address');
@@ -148,9 +148,10 @@
     const total_excl_vat = urlParams.get('total_excl_vat');
     const final_price = urlParams.get('final_price');
     const distance_km = urlParams.get('distance_km');
+    const shop_id = urlParams.get('shop_id'); // ✅ Critical: shop_id from calculator
 
     // Validate required data
-    if (!pickup_address || !delivery_address || !final_price) {
+    if (!pickup_address || !delivery_address || !final_price || !shop_id) {
       document.body.innerHTML = `
         <div class="container" style="text-align:center; padding:40px;">
           <h2>❌ Invalid Order Data</h2>
@@ -203,6 +204,7 @@
       btn.disabled = true;
 
       try {
+        // ✅ Save order with shop_id (linked to authenticated user)
         const { data, error } = await supabase
           .from('orders')
           .insert([
@@ -226,7 +228,8 @@
               contact_name: contactName,
               phone: phone,
               email: email,
-              notes: notes
+              notes: notes,
+              shop_id: shop_id // 🔑 This links the order to the shop
             }
           ])
           .select();
@@ -236,14 +239,19 @@
         statusDiv.textContent = '✅ Order submitted successfully! We’ll contact you soon.';
         statusDiv.className = 'status success';
         
-        // Optional: Reset form or redirect after 3 seconds
+        // Redirect after 3 seconds
         setTimeout(() => {
           window.location.href = 'calculator.html';
         }, 3000);
 
       } catch (err) {
         console.error('Supabase error:', err);
-        statusDiv.textContent = `❌ Failed to save: ${err.message || 'Unknown error'}`;
+        // More detailed error handling
+        if (err.message.includes('new row violates row-level security policy')) {
+          statusDiv.textContent = '❌ Authentication required. Please log in again.';
+        } else {
+          statusDiv.textContent = `❌ Failed to save: ${err.message || 'Unknown error'}`;
+        }
         statusDiv.className = 'status error';
       } finally {
         btn.disabled = false;
