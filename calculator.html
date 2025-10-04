@@ -248,7 +248,23 @@
     </div>
   </div>
 
-  <script>
+  <script type="module">
+    // 🔑 Supabase config
+    const SUPABASE_URL = 'https://otdbijszyjjvhfhdcmym.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90ZGJpanN6eWpqdmhmaGRjbXltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0OTkxOTgsImV4cCI6MjA3NTA3NTE5OH0.ESDkZJ4RAqlOgO-R0tgCQHI3h7nyXV7TmsmrraBMf9I';
+
+    // Initialize Supabase
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ✅ CHECK IF USER IS LOGGED IN
+    const {  { session } } = await supabase.auth.getSession();
+    if (!session) {
+      // Redirect to login if not authenticated
+      window.location.href = 'auth.html';
+    }
+    const currentUserId = session.user.id;
+
     // Set today's date
     function setDateTimeDefaults() {
       const today = new Date().toISOString().split('T')[0];
@@ -303,15 +319,7 @@
     const BASE_ADDRESS = 'Haringrodestraat 20, 2018 Antwerpen, Belgium';
     const SIZE_SURCHARGE = { M: 0.00, L: 5.00, XL: 10.00 };
 
-    function getStandardPrice(distanceKm) {
-      if (distanceKm <= 3) return 8.50;
-      if (distanceKm <= 5) return 10.50;
-      if (distanceKm <= 10) return 12.10;
-      return distanceKm * 1.20;
-    }
-
     async function getDistance(origin, destination) {
-      // ✅ Use reliable CORS proxy
       const proxy = 'https://corsproxy.io/?';
       const url = `https://maps.googleapis.com/maps/api/distancematrix/json?units=metric&origins=${encodeURIComponent(origin)}&destinations=${encodeURIComponent(destination)}&key=${GOOGLE_API_KEY}`;
 
@@ -373,7 +381,6 @@
         return;
       }
 
-      // Validate time order only if both times are provided
       if (pickupFrom && pickupTill && pickupFrom >= pickupTill) {
         errorDiv.textContent = '❌ Pickup "From" must be before "Till".';
         errorDiv.style.display = 'block';
@@ -446,7 +453,6 @@
           `;
         }
 
-        // Format time for display
         const formatTimeDisplay = (time) => time || 'Flexible';
 
         resultDiv.innerHTML = `
@@ -487,7 +493,8 @@
             rush_surcharge: rushSurcharge.toFixed(2),
             total_excl_vat: totalExclVAT.toFixed(2),
             final_price: totalInclVAT.toFixed(2),
-            distance_km: fmt(d3)
+            distance_km: fmt(d3),
+            shop_id: currentUserId // ✅ Pass shop_id to order form
           });
           window.location.href = `order-form.html?${params.toString()}`;
         };
@@ -500,7 +507,14 @@
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-calculator"></i> Calculate Delivery Price';
       }
-    });
+    }
+
+    function getStandardPrice(distanceKm) {
+      if (distanceKm <= 3) return 8.50;
+      if (distanceKm <= 5) return 10.50;
+      if (distanceKm <= 10) return 12.10;
+      return distanceKm * 1.20;
+    }
   </script>
 </body>
 </html>
