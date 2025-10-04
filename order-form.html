@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Complete Your Order</title>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8f9fa;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h2 {
+      text-align: center;
+      color: #333;
+      margin-top: 0;
+    }
+    .quote-box {
+      background: #e8f5e9;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 25px;
+      border: 1px solid #a5d6a7;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      color: #444;
+    }
+    input[type="text"], input[type="email"], input[type="tel"], textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #388e3c;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover:not(:disabled) {
+      background: #2e7d32;
+    }
+    .status {
+      padding: 12px;
+      border-radius: 6px;
+      margin-top: 15px;
+      display: none;
+    }
+    .error { background: #ffebee; color: #d32f2f; }
+    .success { background: #e8f5e9; color: #2e7d32; }
+    .time-slot {
+      font-size: 16px;
+      margin: 6px 0;
+      color: #333;
+    }
+    .price-line {
+      font-size: 16px;
+      margin: 4px 0;
+    }
+    .icon {
+      margin-right: 8px;
+      color: #1976d2;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2><i class="fas fa-file-invoice icon"></i> Complete Your Order</h2>
+
+    <div class="quote-box" id="quoteSummary"></div>
+
+    <div class="form-group">
+      <label><i class="fas fa-store icon"></i> Shop Name *</label>
+      <input type="text" id="shopName" placeholder="e.g., Brussels Bakery" required>
+    </div>
+
+    <div class="form-group">
+      <label><i class="fas fa-user icon"></i> Contact Person *</label>
+      <input type="text" id="contactName" placeholder="Your name" required>
+    </div>
+
+    <div class="form-group">
+      <label><i class="fas fa-phone icon"></i> Phone Number *</label>
+      <input type="tel" id="phone" placeholder="+32 470 12 34 56" required>
+    </div>
+
+    <div class="form-group">
+      <label><i class="fas fa-envelope icon"></i> Email Address</label>
+      <input type="email" id="email" placeholder="you@shop.com">
+    </div>
+
+    <div class="form-group">
+      <label><i class="fas fa-sticky-note icon"></i> Additional Notes</label>
+      <textarea id="notes" rows="3" placeholder="Special instructions..."></textarea>
+    </div>
+
+    <button id="submitBtn"><i class="fas fa-paper-plane"></i> Submit Order</button>
+    <div id="status" class="status"></div>
+  </div>
+
+  <script type="module">
+    // 🔑 Replace with your Supabase project URL and anon key
+    const SUPABASE_URL = 'https://otdbijszyjjvhfhdcmym.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90ZGJpanN6eWpqdmhmaGRjbXltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0OTkxOTgsImV4cCI6MjA3NTA3NTE5OH0.ESDkZJ4RAqlOgO-R0tgCQHI3h7nyXV7TmsmrraBMf9I';
+
+    // Initialize Supabase client
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Get URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const pickup_address = urlParams.get('pickup_address');
+    const delivery_address = urlParams.get('delivery_address');
+    const pickup_date = urlParams.get('pickup_date');
+    const pickup_from = urlParams.get('pickup_from');
+    const pickup_till = urlParams.get('pickup_till');
+    const delivery_date = urlParams.get('delivery_date');
+    const delivery_from = urlParams.get('delivery_from');
+    const delivery_till = urlParams.get('delivery_till');
+    const package_size = urlParams.get('package_size');
+    const base_price = urlParams.get('base_price');
+    const size_surcharge = urlParams.get('size_surcharge');
+    const rush_surcharge = urlParams.get('rush_surcharge');
+    const total_excl_vat = urlParams.get('total_excl_vat');
+    const final_price = urlParams.get('final_price');
+    const distance_km = urlParams.get('distance_km');
+
+    // Validate required data
+    if (!pickup_address || !delivery_address || !final_price) {
+      document.body.innerHTML = `
+        <div class="container" style="text-align:center; padding:40px;">
+          <h2>❌ Invalid Order Data</h2>
+          <p>Go back to the <a href="calculator.html">calculator</a>.</p>
+        </div>
+      `;
+    } else {
+      // Format dates for display
+      function formatDateDisplay(dateStr) {
+        if (!dateStr) return '—';
+        const [y, m, d] = dateStr.split('-');
+        return `${d}/${m}/${y}`;
+      }
+
+      // Format time for display
+      const formatTimeDisplay = (time) => time || 'Flexible';
+
+      // Display quote summary
+      document.getElementById('quoteSummary').innerHTML = `
+        <h3><i class="fas fa-receipt icon"></i> Order Summary</h3>
+        <div class="time-slot"><strong><i class="fas fa-clock"></i> Pickup:</strong> ${formatDateDisplay(pickup_date)} | ${formatTimeDisplay(pickup_from)} – ${formatTimeDisplay(pickup_till)}</div>
+        <div class="time-slot"><strong><i class="fas fa-truck"></i> Delivery:</strong> ${formatDateDisplay(delivery_date)} | ${formatTimeDisplay(delivery_from)} – ${formatTimeDisplay(delivery_till)}</div>
+        <div class="price-line"><strong><i class="fas fa-road"></i> Route:</strong> ${pickup_address} → ${delivery_address}</div>
+        <div class="price-line"><strong><i class="fas fa-box"></i> Package Size:</strong> ${package_size}</div>
+        <div class="price-line"><strong><i class="fas fa-file-invoice"></i> Final Price (incl. 21% VAT):</strong> <span style="color:#388e3c; font-weight:bold">€${final_price}</span></div>
+      `;
+    }
+
+    // Submit order
+    document.getElementById('submitBtn').addEventListener('click', async () => {
+      const shopName = document.getElementById('shopName').value.trim();
+      const contactName = document.getElementById('contactName').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const notes = document.getElementById('notes').value.trim();
+
+      const statusDiv = document.getElementById('status');
+      const btn = document.getElementById('submitBtn');
+
+      if (!shopName || !contactName || !phone) {
+        statusDiv.textContent = '❌ Please fill all required fields.';
+        statusDiv.className = 'status error';
+        statusDiv.style.display = 'block';
+        return;
+      }
+
+      statusDiv.textContent = '⏳ Submitting order...';
+      statusDiv.className = 'status';
+      statusDiv.style.display = 'block';
+      btn.disabled = true;
+
+      try {
+        const { data, error } = await supabase
+          .from('orders')
+          .insert([
+            {
+              pickup_address,
+              delivery_address,
+              pickup_date,
+              pickup_from,
+              pickup_till,
+              delivery_date,
+              delivery_from,
+              delivery_till,
+              package_size,
+              base_price: parseFloat(base_price),
+              size_surcharge: parseFloat(size_surcharge),
+              rush_surcharge: parseFloat(rush_surcharge),
+              total_excl_vat: parseFloat(total_excl_vat),
+              final_price: parseFloat(final_price),
+              distance_km: parseFloat(distance_km),
+              shop_name: shopName,
+              contact_name: contactName,
+              phone: phone,
+              email: email,
+              notes: notes
+            }
+          ])
+          .select();
+
+        if (error) throw error;
+
+        statusDiv.textContent = '✅ Order submitted successfully! We’ll contact you soon.';
+        statusDiv.className = 'status success';
+        
+        // Optional: Reset form or redirect after 3 seconds
+        setTimeout(() => {
+          window.location.href = 'calculator.html';
+        }, 3000);
+
+      } catch (err) {
+        console.error('Supabase error:', err);
+        statusDiv.textContent = `❌ Failed to save: ${err.message || 'Unknown error'}`;
+        statusDiv.className = 'status error';
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
