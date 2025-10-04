@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Delivery Price Calculator — Antwerp Base</title>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8f9fa;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      gap: 30px;
+    }
+    .card {
+      background: white;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      flex: 1;
+    }
+    h2 {
+      text-align: center;
+      color: #333;
+      margin-top: 0;
+      margin-bottom: 15px;
+    }
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 15px;
+      font-size: 14px;
+    }
+    .depot-info {
+      background: #e3f2fd;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      color: #1565c0;
+      text-align: center;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      color: #444;
+    }
+    input[type="text"], input[type="date"], input[type="time"], select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+    /* Date/Time side-by-side */
+    .datetime-section {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    .datetime-card {
+      flex: 1;
+      background: #fafafa;
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid #eee;
+    }
+    .datetime-card h3 {
+      margin-top: 0;
+      font-size: 16px;
+      color: #1976d2;
+    }
+    .time-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .time-group input {
+      width: calc(50% - 5px);
+    }
+    .flexible-time {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+    }
+    .flexible-time input {
+      width: auto;
+      margin-right: 8px;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #1976d2;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover:not(:disabled) {
+      background: #1565c0;
+    }
+    .result {
+      padding: 20px;
+      background: #e8f5e9;
+      border: 1px solid #a5d6a7;
+      border-radius: 8px;
+      display: none;
+    }
+    .error {
+      color: #d32f2f;
+      background: #ffebee;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      display: none;
+    }
+    .price-line {
+      font-size: 18px;
+      margin: 8px 0;
+    }
+    .time-slot {
+      font-size: 16px;
+      margin: 6px 0;
+      color: #333;
+    }
+    .surcharge-note {
+      background: #fff8e1;
+      padding: 10px;
+      border-radius: 6px;
+      margin-top: 10px;
+      font-size: 14px;
+      color: #5d4037;
+    }
+    #readyToSendBtn {
+      margin-top: 20px;
+      padding: 12px;
+      background: #388e3c;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      width: 100%;
+      cursor: pointer;
+    }
+    .icon {
+      margin-right: 8px;
+      color: #1976d2;
+    }
+    @media (max-width: 768px) {
+      .container {
+        flex-direction: column;
+      }
+      .datetime-section {
+        flex-direction: column;
+        gap: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- LEFT CARD: Calculator Inputs -->
+    <div class="card">
+      <h2><i class="fas fa-calculator icon"></i> Price Calculator</h2>
+      <p class="subtitle">Enter pickup & delivery details</p>
+      
+      <div class="depot-info">
+        <i class="fas fa-map-marker-alt icon"></i> <strong>Base:</strong> Haringrodestraat 20, 2018 Antwerpen
+      </div>
+
+      <div id="error" class="error"></div>
+
+      <div class="form-group">
+        <label><i class="fas fa-store icon"></i> Pickup Address (Shop)</label>
+        <input type="text" id="pickup" placeholder="e.g., Rue Neuve 1, Brussels" value="Rue Neuve 1, Brussels" />
+      </div>
+
+      <div class="form-group">
+        <label><i class="fas fa-home icon"></i> Delivery Address (Customer)</label>
+        <input type="text" id="delivery" placeholder="e.g., Meir 1, Antwerp" value="Meir 1, Antwerp" />
+      </div>
+
+      <!-- SIDE-BY-SIDE DATE/TIME -->
+      <div class="datetime-section">
+        <div class="datetime-card">
+          <h3><i class="fas fa-clock icon"></i> Pickup Window</h3>
+          <input type="date" id="pickupDate" />
+          <div class="time-group">
+            <input type="time" id="pickupFrom" />
+            <input type="time" id="pickupTill" />
+          </div>
+          <div class="flexible-time">
+            <input type="checkbox" id="pickupFlexible" />
+            <label for="pickupFlexible">Flexible timing (no fixed window)</label>
+          </div>
+        </div>
+
+        <div class="datetime-card">
+          <h3><i class="fas fa-truck icon"></i> Delivery Window</h3>
+          <input type="date" id="deliveryDate" />
+          <div class="time-group">
+            <input type="time" id="deliveryFrom" />
+            <input type="time" id="deliveryTill" />
+          </div>
+          <div class="flexible-time">
+            <input type="checkbox" id="deliveryFlexible" />
+            <label for="deliveryFlexible">Flexible timing (no fixed window)</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label><i class="fas fa-box icon"></i> Package Size</label>
+        <select id="size">
+          <option value="M">M (Medium) – Standard</option>
+          <option value="L">L (Large) – +€5.00</option>
+          <option value="XL">XL (Extra Large) – +€10.00</option>
+        </select>
+      </div>
+
+      <button id="calculateBtn"><i class="fas fa-calculator"></i> Calculate Delivery Price</button>
+    </div>
+
+    <!-- RIGHT CARD: Quote Result -->
+    <div class="card">
+      <h2><i class="fas fa-file-invoice-dollar icon"></i> Your Delivery Quote</h2>
+      <p class="subtitle">Review and send your order</p>
+      
+      <div id="result" class="result">
+        <p style="text-align: center; color: #666;">
+          <i class="fas fa-info-circle"></i> Click "Calculate Delivery Price" to see your quote.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Set today's date
+    function setDateTimeDefaults() {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('pickupDate').value = today;
+      document.getElementById('pickupDate').min = today;
+      document.getElementById('deliveryDate').value = today;
+      document.getElementById('deliveryDate').min = today;
+    }
+
+    // Handle flexible timing toggle
+    function setupFlexibleToggles() {
+      const pickupFlexible = document.getElementById('pickupFlexible');
+      const deliveryFlexible = document.getElementById('deliveryFlexible');
+      const pickupFrom = document.getElementById('pickupFrom');
+      const pickupTill = document.getElementById('pickupTill');
+      const deliveryFrom = document.getElementById('deliveryFrom');
+      const deliveryTill = document.getElementById('deliveryTill');
+
+      pickupFlexible.addEventListener('change', () => {
+        if (pickupFlexible.checked) {
+          pickupFrom.value = '';
+          pickupTill.value = '';
+          pickupFrom.disabled = true;
+          pickupTill.disabled = true;
+        } else {
+          pickupFrom.disabled = false;
+          pickupTill.disabled = false;
+        }
+      });
+
+      deliveryFlexible.addEventListener('change', () => {
+        if (deliveryFlexible.checked) {
+          deliveryFrom.value = '';
+          deliveryTill.value = '';
+          deliveryFrom.disabled = true;
+          deliveryTill.disabled = true;
+        } else {
+          deliveryFrom.disabled = false;
+          deliveryTill.disabled = false;
+        }
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      setDateTimeDefaults();
+      setupFlexibleToggles();
+    });
+
+    // === Calculator Logic ===
+    const GOOGLE_API_KEY = 'AIzaSyBa8KypJ4QrGTLXhhfZaqwbnXoPdNsxLWc';
+    const VAT_RATE = 0.21;
+    const BASE_ADDRESS = 'Haringrodestraat 20, 2018 Antwerpen, Belgium';
+    const SIZE_SURCHARGE = { M: 0.00, L: 5.00, XL: 10.00 };
+
+    function getStandardPrice(distanceKm) {
+      if (distanceKm <= 3) return 8.50;
+      if (distanceKm <= 5) return 10.50;
+      if (distanceKm <= 10) return 12.10;
+      return distanceKm * 1.20;
+    }
+
+    async function getDistance(origin, destination) {
+      // ✅ Use reliable CORS proxy
+      const proxy = 'https://corsproxy.io/?';
+      const url = `https://maps.googleapis.com/maps/api/distancematrix/json?units=metric&origins=${encodeURIComponent(origin)}&destinations=${encodeURIComponent(destination)}&key=${GOOGLE_API_KEY}`;
+
+      const response = await fetch(proxy + encodeURIComponent(url));
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        console.error('Invalid JSON response:', text);
+        throw new Error('Invalid response from Google Maps. Try again.');
+      }
+
+      if (data.status !== 'OK' || !data.rows?.[0]?.elements?.[0] || data.rows[0].elements[0].status !== 'OK') {
+        throw new Error(`Google Maps: ${data.error_message || data.status || 'Invalid address'}`);
+      }
+      return data.rows[0].elements[0].distance.value / 1000;
+    }
+
+    function formatDateDisplay(dateStr) {
+      if (!dateStr) return '—';
+      const [y, m, d] = dateStr.split('-');
+      return `${d}/${m}/${y}`;
+    }
+
+    function toTimestamp(dateStr, timeStr) {
+      if (!timeStr) return null;
+      const [year, month, day] = dateStr.split('-').map(Number);
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      return new Date(year, month - 1, day, hours, minutes).getTime();
+    }
+
+    function hoursBetween(ts1, ts2) {
+      if (ts1 === null || ts2 === null) return Infinity;
+      return (ts2 - ts1) / (1000 * 60 * 60);
+    }
+
+    document.getElementById('calculateBtn').addEventListener('click', async () => {
+      const pickup = document.getElementById('pickup').value.trim();
+      const delivery = document.getElementById('delivery').value.trim();
+      const size = document.getElementById('size').value;
+      
+      const pickupDate = document.getElementById('pickupDate').value;
+      const pickupFrom = document.getElementById('pickupFrom').value;
+      const pickupTill = document.getElementById('pickupTill').value;
+      const deliveryDate = document.getElementById('deliveryDate').value;
+      const deliveryFrom = document.getElementById('deliveryFrom').value;
+      const deliveryTill = document.getElementById('deliveryTill').value;
+
+      const errorDiv = document.getElementById('error');
+      const resultDiv = document.getElementById('result');
+      const btn = document.getElementById('calculateBtn');
+
+      errorDiv.style.display = 'none';
+
+      if (!pickup || !delivery) {
+        errorDiv.textContent = '❌ Please enter both addresses.';
+        errorDiv.style.display = 'block';
+        return;
+      }
+
+      // Validate time order only if both times are provided
+      if (pickupFrom && pickupTill && pickupFrom >= pickupTill) {
+        errorDiv.textContent = '❌ Pickup "From" must be before "Till".';
+        errorDiv.style.display = 'block';
+        return;
+      }
+      if (deliveryFrom && deliveryTill && deliveryFrom >= deliveryTill) {
+        errorDiv.textContent = '❌ Delivery "From" must be before "Till".';
+        errorDiv.style.display = 'block';
+        return;
+      }
+
+      // ✅ BOTH RUSH CONDITIONS
+      let rushSurcharge = 0.00;
+
+      // Condition 1: Pickup From → Delivery Till ≤ 3 hours
+      if (pickupFrom && deliveryTill) {
+        const pickupFromTs = toTimestamp(pickupDate, pickupFrom);
+        const deliveryTillTs = toTimestamp(deliveryDate, deliveryTill);
+        const totalDuration = hoursBetween(pickupFromTs, deliveryTillTs);
+        if (totalDuration <= 3) {
+          rushSurcharge = 5.00;
+        }
+      }
+
+      // Condition 2: Delivery From → Delivery Till ≤ 3 hours
+      if (rushSurcharge === 0 && deliveryFrom && deliveryTill) {
+        const deliveryFromTs = toTimestamp(deliveryDate, deliveryFrom);
+        const deliveryTillTs = toTimestamp(deliveryDate, deliveryTill);
+        const deliveryWindow = hoursBetween(deliveryFromTs, deliveryTillTs);
+        if (deliveryWindow <= 3) {
+          rushSurcharge = 5.00;
+        }
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Calculating...';
+
+      try {
+        const d1 = await getDistance(BASE_ADDRESS, pickup);
+        const d2 = await getDistance(BASE_ADDRESS, delivery);
+        const d3 = await getDistance(pickup, delivery);
+
+        let basePrice, pricingMode;
+        const sizeSurcharge = SIZE_SURCHARGE[size] || 0;
+
+        if (d1 <= 10) {
+          basePrice = getStandardPrice(d3);
+          pricingMode = 'Local (pickup within 10km of base)';
+        } else if (d2 > 10) {
+          basePrice = (d1 + d3) * 1.20;
+          pricingMode = 'Long-haul (both addresses >10km from base)';
+        } else {
+          basePrice = getStandardPrice(d3);
+          pricingMode = 'Mixed (delivery within 10km of base)';
+        }
+
+        const totalExclVAT = basePrice + sizeSurcharge + rushSurcharge;
+        const totalInclVAT = totalExclVAT * (1 + VAT_RATE);
+
+        const fmt = (n) => n.toFixed(2);
+        const sizeLabels = { M: 'Medium (M)', L: 'Large (L)', XL: 'Extra Large (XL)' };
+
+        let surchargeHtml = '';
+        if (rushSurcharge > 0) {
+          surchargeHtml = `
+            <div class="surcharge-note">
+              <i class="fas fa-exclamation-triangle"></i> <strong>Rush delivery:</strong> Tight timing detected.<br>
+              +€5.00 surcharge applied (before VAT).
+            </div>
+          `;
+        }
+
+        // Format time for display
+        const formatTimeDisplay = (time) => time || 'Flexible';
+
+        resultDiv.innerHTML = `
+          <div class="price-line"><strong><i class="fas fa-route"></i> Route Type:</strong> ${pricingMode}</div>
+          
+          <div class="time-slot"><strong><i class="fas fa-clock"></i> Pickup:</strong> ${formatDateDisplay(pickupDate)} | ${formatTimeDisplay(pickupFrom)} – ${formatTimeDisplay(pickupTill)}</div>
+          <div class="time-slot"><strong><i class="fas fa-truck"></i> Delivery:</strong> ${formatDateDisplay(deliveryDate)} | ${formatTimeDisplay(deliveryFrom)} – ${formatTimeDisplay(deliveryTill)}</div>
+          
+          <div class="price-line"><strong><i class="fas fa-road"></i> Base → Pickup:</strong> ${fmt(d1)} km</div>
+          <div class="price-line"><strong><i class="fas fa-exchange-alt"></i> Pickup → Delivery:</strong> ${fmt(d3)} km</div>
+          <div class="price-line"><strong><i class="fas fa-box"></i> Package Size:</strong> ${sizeLabels[size]}</div>
+          <div class="price-line"><strong><i class="fas fa-euro-sign"></i> Base Price (excl. VAT):</strong> €${fmt(basePrice)}</div>
+          ${sizeSurcharge > 0 ? `<div class="price-line"><strong><i class="fas fa-plus-circle"></i> Size Surcharge:</strong> €${fmt(sizeSurcharge)}</div>` : ''}
+          ${rushSurcharge > 0 ? `<div class="price-line"><strong><i class="fas fa-bolt"></i> Rush Delivery Surcharge:</strong> €${fmt(rushSurcharge)}</div>` : ''}
+          <div class="price-line"><strong><i class="fas fa-receipt"></i> Total (excl. VAT):</strong> €${fmt(totalExclVAT)}</div>
+          <div class="price-line"><strong><i class="fas fa-file-invoice"></i> Final Price (incl. 21% VAT):</strong> <span style="color:#1976d2; font-weight:bold">€${fmt(totalInclVAT)}</span></div>
+          ${surchargeHtml}
+
+          <button id="readyToSendBtn">
+            <i class="fas fa-paper-plane"></i> ✅ Ready to Send Order
+          </button>
+        `;
+        resultDiv.style.display = 'block';
+
+        document.getElementById('readyToSendBtn').onclick = () => {
+          const params = new URLSearchParams({
+            pickup_address: pickup,
+            delivery_address: delivery,
+            pickup_date: pickupDate,
+            pickup_from: pickupFrom,
+            pickup_till: pickupTill,
+            delivery_date: deliveryDate,
+            delivery_from: deliveryFrom,
+            delivery_till: deliveryTill,
+            package_size: size,
+            base_price: basePrice.toFixed(2),
+            size_surcharge: sizeSurcharge.toFixed(2),
+            rush_surcharge: rushSurcharge.toFixed(2),
+            total_excl_vat: totalExclVAT.toFixed(2),
+            final_price: totalInclVAT.toFixed(2),
+            distance_km: fmt(d3)
+          });
+          window.location.href = `order-form.html?${params.toString()}`;
+        };
+
+      } catch (err) {
+        console.error('Error:', err);
+        errorDiv.textContent = `❌ ${err.message || 'Failed to calculate. Try adding "Belgium" to addresses.'}`;
+        errorDiv.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-calculator"></i> Calculate Delivery Price';
+      }
+    });
+  </script>
+</body>
+</html>
