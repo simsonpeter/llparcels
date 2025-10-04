@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Shop Login • Delivery App</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8f9fa;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 400px;
+      margin: 100px auto;
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 25px;
+      color: #1976d2;
+    }
+    .form-group {
+      margin-bottom: 18px;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #1976d2;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover:not(:disabled) {
+      background: #1565c0;
+    }
+    .switch {
+      text-align: center;
+      margin-top: 20px;
+      color: #1976d2;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .error {
+      color: #d32f2f;
+      background: #ffebee;
+      padding: 12px;
+      border-radius: 8px;
+      margin: 15px 0;
+      display: none;
+    }
+    .logo {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 24px;
+      font-weight: bold;
+      color: #1976d2;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">🚚 Delivery App</div>
+    <h2 id="formTitle">Shop Login</h2>
+    
+    <div class="error" id="error"></div>
+
+    <div class="form-group">
+      <input type="email" id="email" placeholder="Shop Email" autocomplete="email" required />
+    </div>
+    
+    <div class="form-group">
+      <input type="password" id="password" placeholder="Password" autocomplete="current-password" required />
+    </div>
+    
+    <button id="actionBtn">Login</button>
+    
+    <div class="switch" id="switchForm">
+      Don't have an account? Sign up
+    </div>
+  </div>
+
+  <!-- Load Supabase from CDN -->
+  <script type="module">
+    // 🔑 Supabase config
+    const SUPABASE_URL = 'https://otdbijszyjjvhfhdcmym.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90ZGJpanN6eWpqdmhmaGRjbXltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0OTkxOTgsImV4cCI6MjA3NTA3NTE5OH0.ESDkZJ4RAqlOgO-R0tgCQHI3h7nyXV7TmsmrraBMf9I';
+
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let isLogin = true;
+
+    function showError(message) {
+      const errorDiv = document.getElementById('error');
+      errorDiv.textContent = message;
+      errorDiv.style.display = 'block';
+      setTimeout(() => {
+        errorDiv.style.display = 'none';
+      }, 5000);
+    }
+
+    document.getElementById('actionBtn').addEventListener('click', async () => {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      
+      if (!email || !password) {
+        showError('Please fill all fields');
+        return;
+      }
+
+      const btn = document.getElementById('actionBtn');
+      btn.disabled = true;
+      btn.textContent = isLogin ? 'Logging in...' : 'Signing up...';
+
+      try {
+        let result;
+        if (isLogin) {
+          result = await supabase.auth.signInWithPassword({ email, password });
+        } else {
+          result = await supabase.auth.signUp({ 
+            email, 
+            password,
+            options: { emailRedirectTo: 'https://delivery-app.vercel.app' } // ← Update this later
+          });
+          if (result.error) throw result.error;
+          alert('✅ Check your email for confirmation!');
+        }
+
+        if (result.error) throw result.error;
+
+        window.location.href = 'calculator.html';
+        
+      } catch (err) {
+        console.error('Auth error:', err);
+        showError(err.message || 'Authentication failed. Check email/password.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = isLogin ? 'Login' : 'Sign Up';
+      }
+    });
+
+    // Toggle between login and signup
+    document.getElementById('switchForm').addEventListener('click', () => {
+      isLogin = !isLogin;
+      document.getElementById('formTitle').textContent = isLogin ? 'Shop Login' : 'Sign Up';
+      document.getElementById('actionBtn').textContent = isLogin ? 'Login' : 'Sign Up';
+      document.getElementById('switchForm').textContent = isLogin 
+        ? "Don't have an account? Sign up" 
+        : "Already have an account? Login";
+    });
+
+    // Check if already logged in
+    const {  { session } } = await supabase.auth.getSession();
+    if (session) {
+      window.location.href = 'calculator.html';
+    }
+  </script>
+</body>
+</html>
